@@ -8,8 +8,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Shellcheck
-      run: |
-        .github/workflows/scripts/run-shellcheck.sh
+      run: docker run --rm -v "$PWD:/mnt" koalaman/shellcheck:v0.7.1 -P ./bin/
 
 
 

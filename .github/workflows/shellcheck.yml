@@ -1,8 +1,6 @@
 name: Shellcheck
 on:
-  push:
-    paths:
-      - "**/*.sh"
+  workflow_call:
 
 jobs:
   shellcheck:

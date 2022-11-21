@@ -1,0 +1,55 @@
+name: "Terragrunt Apply"
+
+on:
+  workflow_call:
+    inputs:
+      role_arn:
+        required: true
+        type: string
+      module:
+        required: true
+        type: string
+      aws_region:
+        required: false
+        type: string
+        default: ca-central-1
+      terraform_version:
+        required: true
+        type: string
+      terragrunt_version:
+        required: true
+        type: string
+
+
+env:
+  AWS_REGION: ${{ inputs.aws_region }}
+  TERRAFORM_VERSION: ${{ inputs.terraform_version }}
+  TERRAGRUNT_VERSION: ${{ inputs.terragrunt_version }}
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+  actions: write
+  checks: write
+  statuses: write
+
+jobs:
+  terragrunt-apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Terraform Tools
+        uses: cds-snc/terraform-tools-setup@v1
+
+      - name: Configure aws credentials using OIDC
+        uses: aws-actions/configure-aws-credentials@master
+        with:
+          role-to-assume: ${{ inputs.role_arn}}
+
+      - name: Terraform Apply
+        working-directory: terraform
+        run: |
+          terragrunt apply --terragrunt-non-interactive -auto-approve

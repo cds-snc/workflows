@@ -1,8 +1,8 @@
-name: Terraform plan
+name: Terragrunt plan
 on:
   workflow_call:
     inputs:
-      role_name:
+      role_arn:
         required: true
         type: string
       module:
@@ -28,7 +28,7 @@ on:
         default: 0.2.4
 
 env:
-  AWS_REGION: ca-central-1
+  AWS_REGION: ${{ inputs.aws_region }}
   TERRAFORM_VERSION: ${{ inputs.terraform_version }}
   TERRAGRUNT_VERSION: ${{ inputs.terragrunt_version }}
   CONFTEST_VERSION: ${{ inputs.conftest_version}}
@@ -55,8 +55,7 @@ jobs:
       - name: Configure aws credentials using OIDC
         uses: aws-actions/configure-aws-credentials@master
         with:
-          role-to-assume: arn:aws:iam::283582579564:role/${{ inputs.role_name }}
-          aws-region: "ca-central-1"
+          role-to-assume: ${{ inputs.role_arn }}
 
       - name: Terraform Plan ${{ inputs.module }}
         uses: cds-snc/terraform-plan@v3

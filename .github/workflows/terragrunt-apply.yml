@@ -1,4 +1,5 @@
-name: Terragrunt plan
+name: "Terragrunt Apply"
+
 on:
   workflow_call:
     inputs:
@@ -18,21 +19,12 @@ on:
       terragrunt_version:
         required: true
         type: string
-      conftest_version:
-        required: false
-        type: string
-        default: 0.35.0
-      tf_summarize_version:
-        required: false
-        type: string
-        default: 0.2.4
+
 
 env:
   AWS_REGION: ${{ inputs.aws_region }}
   TERRAFORM_VERSION: ${{ inputs.terraform_version }}
   TERRAGRUNT_VERSION: ${{ inputs.terragrunt_version }}
-  CONFTEST_VERSION: ${{ inputs.conftest_version}}
-  TF_SUMMARIZE_VERSION: ${{ inputs.tf_summarize_version}}
 
 permissions:
   id-token: write
@@ -43,11 +35,11 @@ permissions:
   statuses: write
 
 jobs:
-  terraform-plan:
+  terragrunt-apply:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Setup Terraform Tools
         uses: cds-snc/terraform-tools-setup@v1
@@ -55,13 +47,9 @@ jobs:
       - name: Configure aws credentials using OIDC
         uses: aws-actions/configure-aws-credentials@master
         with:
-          role-to-assume: ${{ inputs.role_arn }}
+          role-to-assume: ${{ inputs.role_arn}}
 
-      - name: Terraform Plan ${{ inputs.module }}
-        uses: cds-snc/terraform-plan@v3
-        with:
-          comment-delete: true
-          comment-title: Plan for ${{ inputs.module }}
-          directory: ./${{ inputs.module }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          terragrunt: true
+      - name: Terraform Apply
+        working-directory: terraform
+        run: |
+          terragrunt apply --terragrunt-non-interactive -auto-approve

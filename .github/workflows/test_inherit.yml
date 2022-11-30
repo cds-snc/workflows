@@ -1,0 +1,15 @@
+name: Test inherit
+
+on:
+  worflow_calls:
+
+env:
+  MY_SECRECT: ${{ secrets.FOO }}
+
+jobs:
+  test_inherit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test
+        run: |
+          echo "Hello this is a test $MY_SECRET"

@@ -1,7 +1,7 @@
 name: Test inherit
 
 on:
-  worflow_calls:
+  workflow_calls:
 
 env:
   MY_SECRECT: ${{ secrets.FOO }}

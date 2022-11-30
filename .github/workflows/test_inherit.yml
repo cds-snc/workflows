@@ -16,4 +16,4 @@ jobs:
     steps:
       - name: Test
         run: |
-          echo "Hello this is a test $MY_SECRET"
+          printenv MY_SECRET

@@ -8,7 +8,7 @@ on:
       - ".github/workflows/**"
 
 env:
-  MY_SECRECT: ${{ secrets.FOO }}
+  MY_SECRET: ${{ secrets.FOO }}
 
 jobs:
   test_inherit:

@@ -2,6 +2,10 @@ name: Test inherit
 
 on:
   workflow_call:
+  pull_request:
+    paths:
+      - "terraform/**"
+      - ".github/workflows/**"
 
 env:
   MY_SECRECT: ${{ secrets.FOO }}

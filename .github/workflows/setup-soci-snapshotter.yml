@@ -1,0 +1,40 @@
+# Sets up https://github.com/awslabs/soci-snapshotter
+
+name: "Install SOCI Snapshotter"
+
+on:
+  workflow_call:
+    inputs:
+      containerd_version:
+        required: false
+        type: string
+        default: 1.7.2
+      runc_version:
+        required: false
+        type: string
+        default: 1.1.8
+      soci_snapshotter_version:
+        required: false
+        type: string
+        default: 0.3.0
+
+jobs:
+  install-soci-snapshotter:
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Install SOCI
+        working-directory: ./
+        run: |
+          wget https://github.com/awslabs/soci-snapshotter/releases/download/v${{inputs.soci_snapshotter_version}}/soci-snapshotter-${{inputs.soci_snapshotter_version}}-linux-amd64.tar.gz
+          sudo tar -C /usr/local/bin -xvf soci-snapshotter-${{inputs.soci_snapshotter_version}}-linux-amd64.tar.gz soci
+
+      - name: Install Containerd
+        run: |
+          sudo wget https://github.com/containerd/containerd/releases/download/v${{inputs.containerd_version}}/containerd-${{inputs.containerd_version}}-linux-amd64.tar.gz
+          mkdir containerd
+          sudo tar -zxf ./containerd-${{inputs.containerd_version}}-linux-amd64.tar.gz -C ./containerd
+          sudo mv ./containerd/bin/* /usr/bin/
+          rm -rf ./containerd
+          sudo wget https://github.com/opencontainers/runc/releases/download/v${{inputs.runc_version}}/runc.amd64 -O /usr/bin/runc
+          sudo chmod +x /usr/bin/runc

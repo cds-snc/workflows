@@ -1,0 +1,119 @@
+name: "Drift Detection"
+
+on:
+  workflow_call:
+    inputs:
+      slack_webhook:
+        required: true
+        type: string
+      directory:
+        required: true
+        type: string
+      terraform_version:
+        description: "Terraform version (ignored if open_tofu_version is set)"
+        required: false
+        type: string
+      open_tofu_version:
+        description: "OpenTofu version; if set, OpenTofu will be used instead of Terraform"
+        required: false
+        type: string
+      terragrunt_version:
+        required: true
+        type: string
+      tf_summarize_version:
+        required: false
+        type: string
+        default: 0.3.5
+      allow_failure:
+        required: false
+        type: boolean
+        default: false
+
+env:
+  # Prefer OpenTofu if a version is provided, otherwise use Terraform
+  TERRAFORM_VERSION: ${{ inputs.open_tofu_version == '' && inputs.terraform_version || '' }}
+  OPEN_TOFU_VERSION: ${{ inputs.open_tofu_version != '' && inputs.open_tofu_version || '' }}
+  TERRAGRUNT_VERSION: ${{ inputs.terragrunt_version }}
+  TF_SUMMARIZE_VERSION: ${{ inputs.tf_summarize_version }}
+
+jobs:
+  drift-detection:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform tools
+        uses: cds-snc/terraform-tools-setup@v1
+
+      - name: Setup OpenTofu
+        if: ${{ inputs.open_tofu_version }}
+        uses: opentofu/setup-opentofu@dc6f44001438d84e2e21f35cb360929165c6ecf7
+        with:
+          tofu_version: ${{ env.OPEN_TOFU_VERSION }}
+
+      - name: Run drift detection
+        id: drift-detect
+        uses: cds-snc/terraform-plan@v3
+        with:
+          directory: ${{ inputs.directory }}
+          allow-failure: ${{ inputs.allow_failure }}
+          comment: false
+          # Use OpenTofu when an OpenTofu version is provided, otherwise Terraform
+          open-tofu: ${{ inputs.open_tofu_version != '' }}
+          # Enable structured drift-output JSON for Slack rendering
+          enable-drift-output: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Post drift data to Slack
+        if: always()
+        uses: slackapi/slack-github-action@v1.28.0
+        with:
+          webhook: ${{ inputs.slack_webhook }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "Terraform drift for ${{ github.event.repository.name }}",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "Terraform drift detected",
+                    "emoji": true
+                  }
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Repository:* ${{ github.event.repository.name }}\n*Status:* ${{ fromJson(steps.drift-detect.outputs.drift-output).status }}"
+                  }
+                },
+                {
+                  "type": "divider"
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*:large_blue_circle: Created (resource in TF, not in cloud)*\n    • ${{ join(fromJson(steps.drift-detect.outputs.drift-output).resources.created, '\n    • ') || 'None' }}"
+                  }
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*:large_orange_circle: Updated (TF out of sync with cloud)*\n    • ${{ join(fromJson(steps.drift-detect.outputs.drift-output).resources.updated, '\n    • ') || 'None' }}"
+                  }
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*:red_circle: Deleted (state has resources missing in TF)*\n    • ${{ join(fromJson(steps.drift-detect.outputs.drift-output).resources.deleted, '\n    • ') || 'None' }}"
+                  }
+                }
+              ]
+            }
